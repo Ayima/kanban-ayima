@@ -1,0 +1,11 @@
+name = "kanban-ayima-net"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "kanban-ayima-net"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "d99770d0452241e08daf36a955ecad4c"

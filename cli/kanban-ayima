@@ -1,0 +1,270 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG_DIR="$HOME/.kanban-ayima"
+CONFIG_FILE="$CONFIG_DIR/credentials"
+VERSION="1.0.0"
+
+# --- Config ---
+load_config() {
+  if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+  fi
+}
+
+save_config() {
+  mkdir -p "$CONFIG_DIR"
+  chmod 700 "$CONFIG_DIR"
+  cat > "$CONFIG_FILE" <<EOF
+KANBAN_URL="$KANBAN_URL"
+KANBAN_TOKEN="$KANBAN_TOKEN"
+EOF
+  chmod 600 "$CONFIG_FILE"
+}
+
+check_config() {
+  if [[ -z "${KANBAN_URL:-}" || -z "${KANBAN_TOKEN:-}" ]]; then
+    echo "Error: Not logged in. Run: kanban-ayima login <url>" >&2
+    exit 1
+  fi
+}
+
+# --- HTTP helpers ---
+api() {
+  local method="$1" endpoint="$2"
+  shift 2
+  curl -sf -X "$method" \
+    -b "session=$KANBAN_TOKEN" \
+    -H "Content-Type: application/json" \
+    "$@" \
+    "${KANBAN_URL}/api/v1${endpoint}"
+}
+
+api_or_die() {
+  local result
+  result=$(api "$@") || { echo "Error: API request failed" >&2; exit 1; }
+  echo "$result"
+}
+
+# --- Commands ---
+cmd_login() {
+  local url="${1:-}"
+  if [[ -z "$url" ]]; then
+    echo "Usage: kanban-ayima login <url>" >&2
+    echo "Example: kanban-ayima login https://kanban.ayima.net" >&2
+    exit 1
+  fi
+  # Remove trailing slash
+  url="${url%/}"
+
+  echo -n "Username: "
+  read -r username
+
+  echo -n "Password: "
+  read -rs password
+  echo
+
+  # Authenticate and get session token
+  local result
+  result=$(curl -sf -X POST \
+    -H "Content-Type: application/json" \
+    -d "{\"username\":\"$username\",\"password\":\"$password\"}" \
+    "${url}/api/v1/login") || { echo "Error: Login failed. Check URL and password." >&2; exit 1; }
+
+  local token
+  token=$(echo "$result" | jq -r '.token') || { echo "Error: Unexpected response from server." >&2; exit 1; }
+  if [[ -z "$token" || "$token" == "null" ]]; then
+    echo "Error: No session token in response." >&2; exit 1
+  fi
+
+  KANBAN_URL="$url"
+  KANBAN_TOKEN="$token"
+  save_config
+  echo "Logged in to $url"
+}
+
+cmd_boards() {
+  check_config
+  local action="${1:-list}"
+
+  case "$action" in
+    list|"")
+      local result
+      result=$(api_or_die GET /boards)
+      echo "$result" | jq -r '.boards[] | "\(.slug)\t\(.name)\t\(.description // "")"' 2>/dev/null | column -t -s$'\t' || echo "$result"
+      ;;
+    create)
+      local name="${2:-}"
+      if [[ -z "$name" ]]; then
+        echo "Usage: kanban-ayima boards create <name> [description]" >&2
+        exit 1
+      fi
+      local desc="${3:-}"
+      api_or_die POST /boards -d "{\"name\":\"$name\",\"description\":\"$desc\"}" | jq .
+      ;;
+    delete)
+      local slug="${2:-}"
+      if [[ -z "$slug" ]]; then
+        echo "Usage: kanban-ayima boards delete <slug>" >&2
+        exit 1
+      fi
+      echo -n "Delete board '$slug'? [y/N] "
+      read -r confirm
+      [[ "$confirm" == "y" || "$confirm" == "Y" ]] || exit 0
+      api_or_die DELETE "/boards/$slug" | jq .
+      ;;
+    *)
+      echo "Unknown boards action: $action" >&2
+      exit 1
+      ;;
+  esac
+}
+
+cmd_tasks() {
+  check_config
+  local board="${1:-}"
+  if [[ -z "$board" ]]; then
+    echo "Usage: kanban-ayima tasks <board> [action] [args...]" >&2
+    exit 1
+  fi
+
+  local action="${2:-list}"
+  shift 2 2>/dev/null || true
+
+  case "$action" in
+    list|"")
+      local stage_filter=""
+      if [[ "${1:-}" == "--stage" ]]; then
+        stage_filter="?stage=$2"
+      fi
+      local result
+      result=$(api_or_die GET "/boards/$board/tasks${stage_filter}")
+      echo "$result" | jq -r '.tasks[] | "\(.id)\t\(.stage)\t\(.priority)\t\(.title)"' 2>/dev/null | column -t -s$'\t' || echo "$result"
+      ;;
+    create)
+      local title="${1:-}"
+      if [[ -z "$title" ]]; then
+        echo "Usage: kanban-ayima tasks <board> create <title> [--body <content>] [--stage <stage>] [--priority <priority>]" >&2
+        exit 1
+      fi
+      shift
+      local body="" stage="backlog" priority="medium"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --body) body="$2"; shift 2 ;;
+          --stage) stage="$2"; shift 2 ;;
+          --priority) priority="$2"; shift 2 ;;
+          *) shift ;;
+        esac
+      done
+      if [[ -z "$body" && ! -t 0 ]]; then
+        body=$(cat)
+      fi
+      api_or_die POST "/boards/$board/tasks" \
+        -d "{\"title\":\"$title\",\"content\":\"$body\",\"stage\":\"$stage\",\"priority\":\"$priority\"}" | jq .
+      ;;
+    show)
+      local id="${1:-}"
+      if [[ -z "$id" ]]; then echo "Usage: kanban-ayima tasks <board> show <id>" >&2; exit 1; fi
+      api_or_die GET "/boards/$board/tasks/$id" | jq .
+      ;;
+    move)
+      local id="${1:-}" stage="${2:-}"
+      if [[ -z "$id" || -z "$stage" ]]; then
+        echo "Usage: kanban-ayima tasks <board> move <id> <stage>" >&2
+        echo "Stages: backlog, next, in-progress, complete, archive" >&2
+        exit 1
+      fi
+      api_or_die PUT "/boards/$board/tasks/$id" -d "{\"stage\":\"$stage\"}" | jq .
+      ;;
+    edit)
+      local id="${1:-}"
+      if [[ -z "$id" ]]; then echo "Usage: kanban-ayima tasks <board> edit <id>" >&2; exit 1; fi
+      shift
+      local title="" body="" priority=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --title) title="$2"; shift 2 ;;
+          --body) body="$2"; shift 2 ;;
+          --priority) priority="$2"; shift 2 ;;
+          *) shift ;;
+        esac
+      done
+      local payload="{"
+      local first=true
+      for field in title body priority; do
+        local key="$field" val="${!field}"
+        [[ "$field" == "body" ]] && key="content"
+        if [[ -n "$val" ]]; then
+          $first || payload+=","
+          payload+="\"$key\":\"$val\""
+          first=false
+        fi
+      done
+      payload+="}"
+      api_or_die PUT "/boards/$board/tasks/$id" -d "$payload" | jq .
+      ;;
+    update)
+      local id="${1:-}"
+      if [[ -z "$id" ]]; then echo "Usage: kanban-ayima tasks <board> update <id> [--body <content>]" >&2; exit 1; fi
+      shift
+      local content=""
+      if [[ "${1:-}" == "--body" ]]; then
+        content="$2"
+      elif [[ ! -t 0 ]]; then
+        content=$(cat)
+      else
+        echo "Enter update (Ctrl+D to finish):"
+        content=$(cat)
+      fi
+      api_or_die POST "/boards/$board/tasks/$id/updates" -d "{\"content\":\"$content\"}" | jq .
+      ;;
+    delete)
+      local id="${1:-}"
+      if [[ -z "$id" ]]; then echo "Usage: kanban-ayima tasks <board> delete <id>" >&2; exit 1; fi
+      echo -n "Delete task '$id'? [y/N] "
+      read -r confirm
+      [[ "$confirm" == "y" || "$confirm" == "Y" ]] || exit 0
+      api_or_die DELETE "/boards/$board/tasks/$id" | jq .
+      ;;
+    *)
+      echo "Unknown tasks action: $action" >&2; exit 1 ;;
+  esac
+}
+
+cmd_help() {
+  cat <<EOF
+kanban-ayima v$VERSION - Ayima Kanban CLI
+
+Usage: kanban-ayima <command> [args...]
+
+Commands:
+  login <url>                         Log in to a Kanban instance
+  boards                              List boards
+  boards create <name> [desc]         Create a board
+  boards delete <slug>                Delete a board
+  tasks <board>                       List tasks (--stage <stage> to filter)
+  tasks <board> create <title>        Create task (--body, --stage, --priority)
+  tasks <board> show <id>             Show task details
+  tasks <board> move <id> <stage>     Move task to stage
+  tasks <board> edit <id>             Edit task (--title, --body, --priority)
+  tasks <board> update <id>           Add update/comment (--body or stdin)
+  tasks <board> delete <id>           Delete task
+  help                                Show this help
+
+Stages: backlog, next, in-progress, complete, archive
+Priorities: low, medium, high
+EOF
+}
+
+# --- Main ---
+load_config
+
+case "${1:-help}" in
+  login) shift; cmd_login "$@" ;;
+  boards) shift; cmd_boards "$@" ;;
+  tasks) shift; cmd_tasks "$@" ;;
+  help|--help|-h) cmd_help ;;
+  version|--version|-v) echo "kanban-ayima v$VERSION" ;;
+  *) echo "Unknown command: $1. Run 'kanban-ayima help' for usage." >&2; exit 1 ;;
+esac
