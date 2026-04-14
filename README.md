@@ -178,7 +178,7 @@ curl -b cookies.txt https://kanban.ayima.net/api/v1/boards
 ### Install
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima-net/main/cli/kanban-ayima -o /usr/local/bin/kanban-ayima && sudo chmod +x /usr/local/bin/kanban-ayima
+sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/cli/kanban-ayima -o /usr/local/bin/kanban-ayima && sudo chmod +x /usr/local/bin/kanban-ayima
 ```
 
 Requires `curl`, `jq`, and `base64` (standard on macOS/Linux).
@@ -188,7 +188,7 @@ Requires `curl`, `jq`, and `base64` (standard on macOS/Linux).
 Re-run the install command to update to the latest version:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima-net/main/cli/kanban-ayima -o /usr/local/bin/kanban-ayima && sudo chmod +x /usr/local/bin/kanban-ayima
+sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/cli/kanban-ayima -o /usr/local/bin/kanban-ayima && sudo chmod +x /usr/local/bin/kanban-ayima
 ```
 
 ### Login
@@ -232,17 +232,19 @@ kanban-ayima login https://kanban.ayima.net
 
 ### 3. Install the Skill
 
-Copy the skill file to your Claude Code skills directory:
+Copy the skill directory to your Claude Code skills directory:
 
 ```bash
 mkdir -p ~/.claude/skills
-cp skill/kanban.md ~/.claude/skills/kanban.md
+cp -r skill/kanban-ayima ~/.claude/skills/kanban-ayima
 ```
 
 Or if installing from the repo:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima-net/main/skill/kanban.md -o ~/.claude/skills/kanban.md
+mkdir -p ~/.claude/skills/kanban-ayima
+curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/skill/kanban-ayima/SKILL.md \
+  -o ~/.claude/skills/kanban-ayima/SKILL.md
 ```
 
 ### 4. Use It
