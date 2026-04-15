@@ -26,11 +26,14 @@ You can find this in the Cloudflare dashboard under **Workers & Pages > Overview
 npm install
 ```
 
-### 3. Create the R2 Bucket
+### 3. Create the R2 Buckets
 
 ```bash
 wrangler r2 bucket create kanban-ayima-net
+wrangler r2 bucket create kanban-ayima-net-backups
 ```
+
+The first bucket stores board and task data. The second is used for daily automated backups (see [Daily Backups](#daily-backups)).
 
 ### 4. Create the KV Namespace for Sessions
 
@@ -272,3 +275,63 @@ boards/
 
 Task frontmatter fields: `title`, `stage`, `created`, `updated`, `priority`
 Update frontmatter fields: `date`, `author`
+
+---
+
+## Daily Backups
+
+The worker runs a daily cron job (3:00 AM UTC) that snapshots all board data from the primary R2 bucket into a separate backup bucket. Snapshots older than 7 days are automatically pruned.
+
+### Setup
+
+Create the backup R2 bucket:
+
+```bash
+wrangler r2 bucket create kanban-ayima-net-backups
+```
+
+The backup bucket binding (`BACKUP_BUCKET`) and cron trigger are already configured in `wrangler.toml`. Deploy to activate:
+
+```bash
+npm run deploy
+```
+
+### How It Works
+
+- **Schedule:** Runs daily at 03:00 UTC via a Cloudflare Worker [cron trigger](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+- **Snapshot format:** Each day's backup is stored under a `YYYY-MM-DD/` prefix in the backup bucket, mirroring the original object paths
+- **Retention:** Snapshots older than 7 days are deleted automatically
+- **Cost:** R2-to-R2 copies within the same account incur no egress fees
+
+### Backup Bucket Structure
+
+```
+2026-04-14/
+  boards/
+    {board-slug}/
+      _meta.json
+      tasks/
+        {task-id}/
+          task.md
+          updates/
+            {timestamp}.md
+2026-04-13/
+  boards/
+    ...
+```
+
+### Manual Trigger
+
+You can test the backup locally without waiting for the cron schedule:
+
+```bash
+npx wrangler deploy && npx wrangler trigger scheduled
+```
+
+### Restoring from a Backup
+
+To restore a specific day's snapshot, copy objects from the backup bucket back to the primary bucket using the Wrangler CLI or the R2 dashboard. For example, to list a snapshot:
+
+```bash
+npx wrangler r2 object list kanban-ayima-net-backups --prefix "2026-04-14/"
+```

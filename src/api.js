@@ -1,7 +1,7 @@
-import { STAGES } from './auth.js';
+import { STAGES, getAllowedUsers } from './auth.js';
 import * as storage from './storage.js';
 
-export async function handleApi(request, env, path) {
+export async function handleApi(request, env, path, user) {
   const method = request.method;
   const url = new URL(request.url);
 
@@ -100,7 +100,7 @@ export async function handleApi(request, env, path) {
     if (method === 'POST') {
       const body = await request.json();
       if (!body.content) return Response.json({ error: 'Content required' }, { status: 400 });
-      const result = await storage.createUpdate(env, boardSlug, taskId, body);
+      const result = await storage.createUpdate(env, boardSlug, taskId, { content: body.content, author: user.username });
       if (result.error) return Response.json({ error: result.error }, { status: result.status });
       return Response.json(result, { status: 201 });
     }
@@ -110,6 +110,17 @@ export async function handleApi(request, env, path) {
   // GET /api/v1/stages
   if (parts[0] === 'stages' && parts.length === 1 && method === 'GET') {
     return Response.json({ stages: STAGES });
+  }
+
+  // GET /api/v1/assignees
+  if (parts[0] === 'assignees' && parts.length === 1 && method === 'GET') {
+    const users = getAllowedUsers(env);
+    return Response.json({ assignees: users });
+  }
+
+  // GET /api/v1/me
+  if (parts[0] === 'me' && parts.length === 1 && method === 'GET') {
+    return Response.json({ username: user.username });
   }
 
   return Response.json({ error: 'Not found' }, { status: 404 });

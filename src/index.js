@@ -1,6 +1,7 @@
 import { authenticate, handleLogin, handleLogout } from './auth.js';
 import { handleApi } from './api.js';
 import { loginPage, boardListPage, boardViewPage } from './ui.js';
+import { runBackup } from './backup.js';
 
 function checkOrigin(request) {
   const origin = request.headers.get('Origin');
@@ -41,17 +42,17 @@ export default {
         return handleLogout(request, env);
       }
 
-      const authed = await authenticate(request, env);
-      if (!authed) {
+      const user = await authenticate(request, env);
+      if (!user) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      return handleApi(request, env, path);
+      return handleApi(request, env, path, user);
     }
 
     // UI routes — check session auth
-    const authed = await authenticate(request, env);
+    const user = await authenticate(request, env);
 
-    if (!authed) {
+    if (!user) {
       return new Response(loginPage(), { headers: { 'Content-Type': 'text/html' } });
     }
 
@@ -63,5 +64,10 @@ export default {
 
     // Board list (home)
     return new Response(boardListPage(), { headers: { 'Content-Type': 'text/html' } });
+  },
+
+  async scheduled(event, env, ctx) {
+    const result = await runBackup(env);
+    console.log(`Backup complete: ${result.copied} objects copied (${result.date}), ${result.pruned} old objects pruned`);
   }
 };

@@ -93,6 +93,7 @@ export function boardViewPage(slug) {
     <nav class="topbar">
       <a href="/" class="back">&larr; Boards</a>
       <h1 id="board-title">Loading...</h1>
+      <span class="user-badge" id="current-user"></span>
       <button class="btn btn-sm" onclick="logout()">Logout</button>
     </nav>
     <div class="kanban-container">
@@ -125,6 +126,9 @@ export function boardViewPage(slug) {
           <option value="medium" selected>Medium</option>
           <option value="high">High</option>
         </select>
+        <select id="new-assignee" class="input">
+          <option value="unassigned">Unassigned</option>
+        </select>
         <div class="btn-row">
           <button class="btn btn-primary" onclick="createTask()">Create</button>
           <button class="btn" onclick="closeModal('modal-create')">Cancel</button>
@@ -142,6 +146,24 @@ export function boardViewPage(slug) {
     <script>
       const BOARD = '${slug}';
       const STAGES = ['backlog','next','in-progress','complete','archive'];
+      let ASSIGNEES = [];
+      let CURRENT_USER = '';
+
+      async function loadAssignees() {
+        const res = await fetch('/api/v1/assignees');
+        const data = await res.json();
+        ASSIGNEES = data.assignees || [];
+        const sel = document.getElementById('new-assignee');
+        sel.innerHTML = '<option value="unassigned">Unassigned</option>' +
+          ASSIGNEES.map(a => '<option value="' + a + '">' + a.charAt(0).toUpperCase() + a.slice(1) + '</option>').join('');
+      }
+
+      async function loadCurrentUser() {
+        const res = await fetch('/api/v1/me');
+        const data = await res.json();
+        CURRENT_USER = data.username || '';
+        document.getElementById('current-user').textContent = CURRENT_USER.charAt(0).toUpperCase() + CURRENT_USER.slice(1);
+      }
 
       async function loadBoard() {
         const bRes = await fetch('/api/v1/boards/' + BOARD);
@@ -175,11 +197,14 @@ export function boardViewPage(slug) {
 
       function taskCard(t) {
         const priorityClass = 'priority-' + (t.priority || 'medium');
+        const assignee = t.assignee && t.assignee !== 'unassigned' ? t.assignee : '';
+        const assigneeHtml = assignee ? '<span class="assignee-badge">' + esc(assignee.charAt(0).toUpperCase() + assignee.slice(1)) + '</span>' : '';
         return \`<div class="task-card card \${priorityClass}" draggable="true" data-id="\${t.id}" data-pos="\${t.position || 0}"
           ondragstart="dragStart(event)" onclick="showTask('\${t.id}')">
           <strong>\${esc(t.title)}</strong>
           <div class="task-meta">
             <span class="priority-badge \${priorityClass}">\${esc(t.priority || 'medium')}</span>
+            \${assigneeHtml}
           </div>
         </div>\`;
       }
@@ -288,6 +313,12 @@ export function boardViewPage(slug) {
                 \${['low','medium','high'].map(p => '<option' + (p === task.priority ? ' selected' : '') + '>' + p + '</option>').join('')}
               </select>
             </label>
+            <label>Assignee:
+              <select onchange="updateTaskField('\${id}', 'assignee', this.value)" class="input input-sm">
+                <option value="unassigned"\${(!task.assignee || task.assignee === 'unassigned') ? ' selected' : ''}>Unassigned</option>
+                \${ASSIGNEES.map(a => '<option value="' + a + '"' + (a === task.assignee ? ' selected' : '') + '>' + a.charAt(0).toUpperCase() + a.slice(1) + '</option>').join('')}
+              </select>
+            </label>
           </div>
           <div class="task-content">
             <h4>Description</h4>
@@ -377,6 +408,7 @@ export function boardViewPage(slug) {
             content: document.getElementById('new-content').value,
             stage: document.getElementById('new-stage').value,
             priority: document.getElementById('new-priority').value,
+            assignee: document.getElementById('new-assignee').value,
           })
         });
         closeModal('modal-create');
@@ -388,6 +420,8 @@ export function boardViewPage(slug) {
       function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
       async function logout() { await fetch('/api/v1/logout', { method: 'POST' }); location.href = '/'; }
 
+      loadAssignees();
+      loadCurrentUser();
       loadBoard();
     </script>
   `, 'Board');
@@ -491,6 +525,9 @@ function html(body, title) {
     .update-meta { font-size: 12px; color: #6e7681; margin-bottom: 4px; }
     .update-body { font-size: 14px; white-space: pre-wrap; color: #e6edf3; }
     .add-update { margin-top: 12px; }
+
+    .assignee-badge { font-size: 11px; padding: 1px 6px; border-radius: 3px; background: #58a6ff22; color: #58a6ff; font-weight: 500; }
+    .user-badge { font-size: 13px; color: #8b949e; padding: 2px 8px; border: 1px solid #30363d; border-radius: 12px; }
 
     .empty { color: #6e7681; font-style: italic; padding: 16px 0; }
 

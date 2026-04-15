@@ -9,9 +9,17 @@ export async function authenticate(request, env) {
   const match = cookie.match(/session=([^;]+)/);
   if (match) {
     const session = await env.SESSIONS.get(match[1]);
-    if (session) return true;
+    if (session) {
+      const data = JSON.parse(session);
+      return { username: data.username || 'anonymous' };
+    }
   }
-  return false;
+  return null;
+}
+
+export function getAllowedUsers(env) {
+  const raw = env.AUTH_USERS || '';
+  return raw.split(',').map(u => u.trim().toLowerCase()).filter(Boolean).sort();
 }
 
 const LOGIN_RATE_LIMIT = { maxAttempts: 5, windowSecs: 300 };
@@ -53,12 +61,14 @@ export async function handleLogin(request, env) {
     return Response.json({ error: 'Password required' }, { status: 400 });
   }
 
-  if (body.username !== env.AUTH_USERNAME || body.password !== env.AUTH_PASSWORD) {
+  const allowedUsers = getAllowedUsers(env);
+  const username = (body.username || '').trim().toLowerCase();
+  if (!allowedUsers.includes(username) || body.password !== env.AUTH_PASSWORD) {
     return Response.json({ error: 'Invalid credentials' }, { status: 401 });
   }
 
   const token = crypto.randomUUID();
-  await env.SESSIONS.put(token, JSON.stringify({ created: new Date().toISOString() }), { expirationTtl: SESSION_TTL });
+  await env.SESSIONS.put(token, JSON.stringify({ created: new Date().toISOString(), username }), { expirationTtl: SESSION_TTL });
 
   return Response.json({ ok: true, token }, {
     headers: {
