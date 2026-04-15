@@ -1,6 +1,67 @@
-# Ayima Kanban
+# Kanban Ayima
 
-A lightweight kanban board hosted on Cloudflare Workers with R2 storage, available at **kanban.ayima.net**.
+> Made with ❤️ by [Ayima](https://www.ayima.com/) --- see [using this project](#using-this-project) below
+
+A kanban board hosted on Cloudflare Workers with R2 storage.
+
+- **Lightweight task management** — create boards, drag-and-drop tasks through stages (Backlog → Next → In Progress → Complete → Archive)
+- **Claude Code integration** — install the CLI + agent skill and let Claude manage your board with natural language
+
+## Quickstart
+
+### 1. Install the CLI
+
+```bash
+sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/cli/kanban-ayima \
+  -o /usr/local/bin/kanban-ayima && sudo chmod +x /usr/local/bin/kanban-ayima
+```
+
+### 2. Log in
+
+```bash
+kanban-ayima login https://kanban.ayima.net
+```
+
+### 3. Install the Claude Code skill
+
+```bash
+mkdir -p ~/.claude/skills/kanban-ayima
+curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/skill/kanban-ayima/SKILL.md \
+  -o ~/.claude/skills/kanban-ayima/SKILL.md
+```
+
+Then ask Claude things like:
+- `/kanban-ayima Create these tasks in the [project-name] board`
+- `/kanban-ayima Show me all tasks in the backlog for [project-name]`
+
+
+---
+
+## Using this project
+
+We are releasing this open-source for you to copy and adapt as needed.
+
+If you find it helpful then please show your appreciation by **leaving us a star** ⭐. Thank you!
+
+Here is a prompt to get you started:
+
+```
+Have a look at this kanban board project. I want to adapt it for my business
+named "[insert-business-name]".
+
+https://github.com/Ayima/kanban-ayima
+
+Your task is to create my own version of this project on my local machine and
+then help me deploy it.
+
+You'll need to ensure that I have the proper dependencies before we get started
+and also work with me to set up the proper credentials.
+
+Let me know what you need from me as we go, and also pause to ask me any
+questions that require clarification.
+```
+
+---
 
 ## Setup
 
@@ -74,19 +135,6 @@ Note: For local dev, you'll need to create a `.dev.vars` file:
 AUTH_USERNAME=your-dev-username
 AUTH_PASSWORD=your-dev-password
 ```
-
----
-
-## Web UI
-
-Navigate to `https://kanban.ayima.net` and log in with the credentials you set via `wrangler secret put`.
-
-Features:
-- Create and manage boards (one per project)
-- Drag-and-drop tasks between stages: Backlog → Next → In Progress → Complete → Archive
-- Task descriptions in markdown
-- Comment/update threads on each task
-- Priority levels (low, medium, high)
 
 ---
 
@@ -184,15 +232,9 @@ curl -b cookies.txt https://kanban.ayima.net/api/v1/boards
 sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/cli/kanban-ayima -o /usr/local/bin/kanban-ayima && sudo chmod +x /usr/local/bin/kanban-ayima
 ```
 
-Requires `curl`, `jq`, and `base64` (standard on macOS/Linux).
-
 ### Update
 
-Re-run the install command to update to the latest version:
-
-```bash
-sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/cli/kanban-ayima -o /usr/local/bin/kanban-ayima && sudo chmod +x /usr/local/bin/kanban-ayima
-```
+Re-run the install command to update to the latest version.
 
 ### Login
 
@@ -200,7 +242,7 @@ sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/cli/ka
 kanban-ayima login https://kanban.ayima.net
 ```
 
-Credentials are stored in `~/.kanban-ayima/credentials`.
+Credentials will be stored in `~/.kanban-ayima/credentials`.
 
 ### Commands
 
@@ -318,14 +360,6 @@ npm run deploy
 2026-04-13/
   boards/
     ...
-```
-
-### Manual Trigger
-
-You can test the backup locally without waiting for the cron schedule:
-
-```bash
-npx wrangler deploy && npx wrangler trigger scheduled
 ```
 
 ### Restoring from a Backup
