@@ -299,7 +299,9 @@ export function boardViewPage(slug) {
         const detail = document.getElementById('task-detail');
         detail.innerHTML = \`
           <div class="task-header">
-            <h2>\${esc(task.title)}</h2>
+            <input type="text" class="title-edit" id="task-title-edit" value="\${esc(task.title)}"
+              onblur="saveTitle('\${id}')"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />
             <button class="btn btn-sm btn-danger" onclick="deleteTask('\${id}')">Delete</button>
           </div>
           <div class="task-props">
@@ -363,6 +365,16 @@ export function boardViewPage(slug) {
         });
       }
 
+      async function saveTitle(id) {
+        const title = document.getElementById('task-title-edit').value.trim();
+        if (!title) return;
+        await fetch('/api/v1/boards/' + BOARD + '/tasks/' + id, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title })
+        });
+        loadBoard();
+      }
+
       async function saveContent(id) {
         const content = document.getElementById('task-content-edit').value;
         await fetch('/api/v1/boards/' + BOARD + '/tasks/' + id, {
@@ -397,6 +409,20 @@ export function boardViewPage(slug) {
         m.style.transition = 'opacity 0.15s ease';
         setTimeout(() => { m.style.display = 'none'; m.style.opacity = ''; c.style.animation = ''; }, 150);
       }
+
+      // Close modals on click outside or Escape key
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+          closeModal(e.target.id);
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          document.querySelectorAll('.modal').forEach(m => {
+            if (m.style.display === 'flex') closeModal(m.id);
+          });
+        }
+      });
 
       async function createTask() {
         const title = document.getElementById('new-title').value.trim();
@@ -512,8 +538,10 @@ function html(body, title) {
     @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
     @keyframes modalOut { to { opacity: 0; transform: scale(0.97) translateY(5px); } }
 
-    .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .task-header h2 { color: #e6edf3; }
+    .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; }
+    .title-edit { flex: 1; font-size: 1.5em; font-weight: 600; color: #e6edf3; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 2px 6px; font-family: inherit; }
+    .title-edit:hover { border-color: #30363d; }
+    .title-edit:focus { outline: none; border-color: #58a6ff; background: #0d1117; box-shadow: 0 0 0 3px #58a6ff33; }
     .task-props { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .task-props label { font-size: 13px; color: #8b949e; display: flex; align-items: center; gap: 4px; }
     .task-content { margin-bottom: 16px; }
