@@ -113,6 +113,14 @@ cmd_boards() {
       [[ "$confirm" == "y" || "$confirm" == "Y" ]] || exit 0
       api_or_die DELETE "/boards/$slug" | jq .
       ;;
+    rename)
+      local slug="${2:-}" new_name="${3:-}"
+      if [[ -z "$slug" || -z "$new_name" ]]; then
+        echo "Usage: kanban-ayima boards rename <slug> <new-name>" >&2
+        exit 1
+      fi
+      api_or_die PUT "/boards/$slug" -d "{\"name\":\"$new_name\"}" | jq .
+      ;;
     *)
       echo "Unknown boards action: $action" >&2
       exit 1
@@ -242,6 +250,7 @@ Commands:
   login <url>                         Log in to a Kanban instance
   boards                              List boards
   boards create <name> [desc]         Create a board
+  boards rename <slug> <new-name>     Rename a board
   boards delete <slug>                Delete a board
   tasks <board>                       List tasks (--stage <stage> to filter)
   tasks <board> create <title>        Create task (--body, --stage, --priority)

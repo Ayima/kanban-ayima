@@ -11,10 +11,14 @@ A kanban board hosted on Cloudflare Workers with R2 storage.
 
 ### 1. Install the CLI
 
+Clone the repo and symlink the CLI so updates are instant:
+
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/cli/kanban-ayima \
-  -o /usr/local/bin/kanban-ayima && sudo chmod +x /usr/local/bin/kanban-ayima
+git clone https://github.com/ayima/kanban-ayima.git ~/kanban-ayima
+sudo ln -s ~/kanban-ayima/cli/kanban-ayima /usr/local/bin/kanban-ayima
 ```
+
+After that, `git pull` in the repo is all you need to update — no reinstall required.
 
 ### 2. Log in
 
@@ -163,6 +167,7 @@ curl -b cookies.txt https://kanban.ayima.net/api/v1/boards
 | `GET` | `/api/v1/boards` | List all boards |
 | `POST` | `/api/v1/boards` | Create a board |
 | `GET` | `/api/v1/boards/:slug` | Get board details |
+| `PUT` | `/api/v1/boards/:slug` | Update board name/description |
 | `DELETE` | `/api/v1/boards/:slug` | Delete a board and all its tasks |
 
 **Create board body:**
@@ -228,13 +233,20 @@ curl -b cookies.txt https://kanban.ayima.net/api/v1/boards
 
 ### Install
 
+Clone the repo and symlink the CLI:
+
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/cli/kanban-ayima -o /usr/local/bin/kanban-ayima && sudo chmod +x /usr/local/bin/kanban-ayima
+git clone https://github.com/ayima/kanban-ayima.git ~/kanban-ayima
+sudo ln -s ~/kanban-ayima/cli/kanban-ayima /usr/local/bin/kanban-ayima
 ```
 
 ### Update
 
-Re-run the install command to update to the latest version.
+```bash
+cd ~/kanban-ayima && git pull
+```
+
+No reinstall needed — the symlink picks up changes automatically.
 
 ### Login
 
@@ -249,6 +261,7 @@ Credentials will be stored in `~/.kanban-ayima/credentials`.
 ```
 kanban-ayima boards                              # List boards
 kanban-ayima boards create "Project Alpha"       # Create a board
+kanban-ayima boards rename project-alpha "New Name"  # Rename a board
 kanban-ayima boards delete project-alpha         # Delete a board
 
 kanban-ayima tasks project-alpha                 # List all tasks

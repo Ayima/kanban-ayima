@@ -32,6 +32,13 @@ export async function handleApi(request, env, path, user) {
       if (!board) return notFound('Board');
       return Response.json(board);
     }
+    if (method === 'PUT') {
+      const body = await request.json();
+      if (!body.name && body.description === undefined) return Response.json({ error: 'Nothing to update' }, { status: 400 });
+      const result = await storage.updateBoard(env, boardSlug, body);
+      if (result.error) return Response.json({ error: result.error }, { status: result.status });
+      return Response.json(result);
+    }
     if (method === 'DELETE') {
       await storage.deleteBoard(env, boardSlug);
       return Response.json({ ok: true });

@@ -29,6 +29,18 @@ export async function createBoard(env, { name, description }) {
   return { slug, ...meta };
 }
 
+export async function updateBoard(env, slug, updates) {
+  const existing = await getBoard(env, slug);
+  if (!existing) return { error: 'Board not found', status: 404 };
+
+  const { slug: _slug, ...meta } = existing;
+  if (updates.name !== undefined) meta.name = updates.name;
+  if (updates.description !== undefined) meta.description = updates.description;
+
+  await env.BUCKET.put(`boards/${slug}/_meta.json`, JSON.stringify(meta));
+  return { slug, ...meta };
+}
+
 export async function deleteBoard(env, slug) {
   // Delete all objects under boards/{slug}/
   let cursor;

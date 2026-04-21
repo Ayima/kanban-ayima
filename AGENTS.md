@@ -22,5 +22,5 @@ Read `.secrets` at the start of each session for credentials and configuration v
 - `src/api.js` — REST API handlers
 - `src/storage.js` — R2 storage layer
 - `src/ui.js` — server-rendered HTML UI
-- `cli/kanban` — bash CLI client
+- `cli/kanban-ayima` — bash CLI client (symlinked to `/usr/local/bin/kanban-ayima`; `git pull` auto-updates)
 - `skill/kanban-ayima/SKILL.md` — Claude Code skill definition (install to `~/.claude/skills/kanban-ayima/SKILL.md`)
