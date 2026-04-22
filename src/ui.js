@@ -265,12 +265,22 @@ export function boardViewPage(slug) {
                 position = (beforePos + afterPos) / 2;
               }
             }
-            await fetch('/api/v1/boards/' + BOARD + '/tasks/' + taskId, {
+            const cardEl = document.querySelector(`.task-card[data-id="${taskId}"]`);
+            if (afterCard) {
+              cards.insertBefore(cardEl, afterCard);
+            } else {
+              cards.appendChild(cardEl);
+            }
+            cardEl.dataset.pos = position;
+
+            fetch('/api/v1/boards/' + BOARD + '/tasks/' + taskId, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ stage: newStage, position: position })
+            }).catch(err => {
+              console.error('Task move failed, reverting UI:', err);
+              loadBoard();
             });
-            loadBoard();
           });
         });
       }
