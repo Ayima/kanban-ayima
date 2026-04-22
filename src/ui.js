@@ -265,7 +265,7 @@ export function boardViewPage(slug) {
                 position = (beforePos + afterPos) / 2;
               }
             }
-            const cardEl = document.querySelector(`.task-card[data-id="${taskId}"]`);
+            const cardEl = document.querySelector('.task-card[data-id="' + taskId + '"]');
             if (afterCard) {
               cards.insertBefore(cardEl, afterCard);
             } else {
