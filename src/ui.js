@@ -126,6 +126,7 @@ export function boardViewPage(slug) {
           <option value="medium" selected>Medium</option>
           <option value="high">High</option>
         </select>
+        <input type="text" id="new-category" placeholder="Category (optional)" class="input" />
         <select id="new-assignee" class="input">
           <option value="unassigned">Unassigned</option>
         </select>
@@ -199,11 +200,13 @@ export function boardViewPage(slug) {
         const priorityClass = 'priority-' + (t.priority || 'medium');
         const assignee = t.assignee && t.assignee !== 'unassigned' ? t.assignee : '';
         const assigneeHtml = assignee ? '<span class="assignee-badge">' + esc(assignee.charAt(0).toUpperCase() + assignee.slice(1)) + '</span>' : '';
+        const categoryHtml = t.category ? (() => { const c = categoryColor(t.category); return '<span class="category-badge" style="background:' + c.bg + ';color:' + c.color + '">' + esc(t.category) + '</span>'; })() : '';
         return \`<div class="task-card card \${priorityClass}" draggable="true" data-id="\${t.id}" data-pos="\${t.position || 0}"
           ondragstart="dragStart(event)" onclick="showTask('\${t.id}')">
           <strong>\${esc(t.title)}</strong>
           <div class="task-meta">
             <span class="priority-badge \${priorityClass}">\${esc(t.priority || 'medium')}</span>
+            \${categoryHtml}
             \${assigneeHtml}
           </div>
         </div>\`;
@@ -325,6 +328,12 @@ export function boardViewPage(slug) {
                 \${['low','medium','high'].map(p => '<option' + (p === task.priority ? ' selected' : '') + '>' + p + '</option>').join('')}
               </select>
             </label>
+            <label>Category:
+              <input type="text" class="input input-sm" value="\${esc(task.category || '')}"
+                placeholder="none"
+                onblur="updateTaskField('\${id}', 'category', this.value.trim() || '')"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />
+            </label>
             <label>Assignee:
               <select onchange="updateTaskField('\${id}', 'assignee', this.value)" class="input input-sm">
                 <option value="unassigned"\${(!task.assignee || task.assignee === 'unassigned') ? ' selected' : ''}>Unassigned</option>
@@ -444,13 +453,31 @@ export function boardViewPage(slug) {
             content: document.getElementById('new-content').value,
             stage: document.getElementById('new-stage').value,
             priority: document.getElementById('new-priority').value,
+            category: document.getElementById('new-category').value.trim() || undefined,
             assignee: document.getElementById('new-assignee').value,
           })
         });
         closeModal('modal-create');
         document.getElementById('new-title').value = '';
         document.getElementById('new-content').value = '';
+        document.getElementById('new-category').value = '';
         loadBoard();
+      }
+
+      const CATEGORY_PALETTE = [
+        { bg: '#1a2a3d', color: '#7eb8e8' },
+        { bg: '#2b1f3a', color: '#b794f4' },
+        { bg: '#0d2d2d', color: '#2dd4bf' },
+        { bg: '#2e1f0f', color: '#d4a76a' },
+        { bg: '#1a1f35', color: '#818cf8' },
+        { bg: '#2a1e14', color: '#c49a6c' },
+        { bg: '#1e2430', color: '#8b9cc8' },
+        { bg: '#2a1a2e', color: '#c084f0' },
+      ];
+      function categoryColor(name) {
+        let h = 0;
+        for (let i = 0; i < name.length; i++) h = (Math.imul(31, h) + name.charCodeAt(i)) | 0;
+        return CATEGORY_PALETTE[Math.abs(h) % CATEGORY_PALETTE.length];
       }
 
       function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -529,11 +556,13 @@ function html(body, title) {
     .task-card.dragging { opacity: 0.4; transform: scale(0.97); }
     .task-card strong { font-size: 14px; display: block; margin-bottom: 6px; color: #e6edf3; }
     .task-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .priority-badge { font-size: 11px; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
-    .priority-high { border-left: 3px solid #f85149; }
-    .priority-badge.priority-high { background: #f8514922; color: #f85149; border-left: none; }
-    .priority-medium .priority-badge { background: #d2992222; color: #d29922; }
-    .priority-low .priority-badge { background: #3fb95022; color: #3fb950; }
+    .priority-badge { font-size: 11px; padding: 1px 6px; border-radius: 3px; font-weight: 600; border: 1px solid transparent; }
+    .priority-high { border-left: 3px solid #f0f6fc; }
+    .priority-badge.priority-high { background: #f0f6fc; color: #0d1117; border-left: none; }
+    .priority-medium .priority-badge { background: #30363d; color: #e6edf3; border-color: #484f58; }
+    .priority-low .priority-badge { background: transparent; color: #8b949e; border-color: #30363d; }
+    .priority-medium { border-left: 3px solid #484f58; }
+    .priority-low { border-left: 3px solid #21262d; }
 
     .archive-section { margin-top: 16px; padding: 0 24px; }
     .archive-section summary { cursor: pointer; color: #8b949e; font-size: 14px; padding: 8px; }
@@ -565,6 +594,7 @@ function html(body, title) {
     .add-update { margin-top: 12px; }
 
     .assignee-badge { font-size: 11px; padding: 1px 6px; border-radius: 3px; background: #58a6ff22; color: #58a6ff; font-weight: 500; }
+    .category-badge { font-size: 11px; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
     .user-badge { font-size: 13px; color: #8b949e; padding: 2px 8px; border: 1px solid #30363d; border-radius: 12px; }
 
     .empty { color: #6e7681; font-style: italic; padding: 16px 0; }

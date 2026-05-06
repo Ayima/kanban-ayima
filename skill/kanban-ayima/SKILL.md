@@ -26,7 +26,7 @@ kanban-ayima login https://kanban.ayima.net
 - `kanban-ayima tasks <board> create "<title>" --body "<content>" --stage <stage> --priority <priority>` — Create a task
 - `kanban-ayima tasks <board> show <id>` — Show task details and updates
 - `kanban-ayima tasks <board> move <id> <stage>` — Move a task to a different stage
-- `kanban-ayima tasks <board> edit <id> --title "<title>" --body "<content>" --priority <priority>` — Edit a task
+- `kanban-ayima tasks <board> edit <id> --title "<title>" --body "<content>" --priority <priority> --assignee "<name>"` — Edit a task (all flags optional; only provided fields are updated)
 - `kanban-ayima tasks <board> update <id> --body "<comment>"` — Add a comment/update to a task
 - `kanban-ayima tasks <board> delete <id>` — Delete a task
 

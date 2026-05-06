@@ -84,7 +84,7 @@ export async function getTask(env, boardSlug, taskId) {
   return { id: taskId, ...parsed.meta, content: parsed.body };
 }
 
-export async function createTask(env, boardSlug, { title, content, stage, priority, position, assignee }) {
+export async function createTask(env, boardSlug, { title, content, stage, priority, position, assignee, category }) {
   const board = await getBoard(env, boardSlug);
   if (!board) return { error: 'Board not found', status: 404 };
 
@@ -98,6 +98,7 @@ export async function createTask(env, boardSlug, { title, content, stage, priori
     priority: priority || 'medium',
     position: typeof position === 'number' ? position : Date.now(),
     assignee: assignee || 'unassigned',
+    ...(category ? { category } : {}),
   };
 
   const md = buildFrontmatter(meta) + '\n' + (content || '');
@@ -117,6 +118,7 @@ export async function updateTask(env, boardSlug, taskId, updates) {
   if (updates.priority !== undefined) newMeta.priority = updates.priority;
   if (updates.position !== undefined) newMeta.position = updates.position;
   if (updates.assignee !== undefined) newMeta.assignee = updates.assignee;
+  if (updates.category !== undefined) newMeta.category = updates.category;
   newMeta.updated = new Date().toISOString();
 
   const newContent = updates.content !== undefined ? updates.content : existingContent;
