@@ -63,6 +63,14 @@ export async function handleApi(request, env, path, user) {
       if (body.stage && !STAGES.includes(body.stage)) {
         return Response.json({ error: `Invalid stage. Must be one of: ${STAGES.join(', ')}` }, { status: 400 });
       }
+
+      if (body.category) {
+        const board = await storage.getBoard(env, boardSlug);
+        if (board && board.categories && !board.categories.includes(body.category)) {
+          return Response.json({ error: `Invalid category. Must be one of: ${board.categories.join(', ')}` }, { status: 400 });
+        }
+      }
+
       const result = await storage.createTask(env, boardSlug, body);
       if (result.error) return Response.json({ error: result.error }, { status: result.status });
       return Response.json(result, { status: 201 });
@@ -85,6 +93,14 @@ export async function handleApi(request, env, path, user) {
       if (body.stage && !STAGES.includes(body.stage)) {
         return Response.json({ error: `Invalid stage. Must be one of: ${STAGES.join(', ')}` }, { status: 400 });
       }
+
+      if (body.category) {
+        const board = await storage.getBoard(env, boardSlug);
+        if (board && board.categories && !board.categories.includes(body.category)) {
+          return Response.json({ error: `Invalid category. Must be one of: ${board.categories.join(', ')}` }, { status: 400 });
+        }
+      }
+
       const result = await storage.updateTask(env, boardSlug, taskId, body);
       if (result.error) return Response.json({ error: result.error }, { status: result.status });
       return Response.json(result);

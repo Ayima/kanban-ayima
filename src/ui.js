@@ -126,7 +126,11 @@ export function boardViewPage(slug) {
           <option value="medium" selected>Medium</option>
           <option value="high">High</option>
         </select>
-        <input type="text" id="new-category" placeholder="Category (optional)" class="input" />
+        <select id="new-category" class="input">
+          <option value="">None</option>
+          \${(currentBoard.categories || []).map(c => \`<option value="\${esc(c)}">\${esc(c)}</option>\`).join('')}
+          <option value="__new__">+ Add New Category...</option>
+        </select>
         <select id="new-assignee" class="input">
           <option value="unassigned">Unassigned</option>
         </select>
@@ -329,11 +333,13 @@ export function boardViewPage(slug) {
               </select>
             </label>
             <label>Category:
-              <input type="text" class="input input-sm" value="\${esc(task.category || '')}"
-                placeholder="none"
-                onblur="updateTaskField('\${id}', 'category', this.value.trim() || '')"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />
+              <select onchange="handleCategoryChange('\${id}', this)" class="input input-sm">
+                <option value="">none</option>
+                \${(currentBoard.categories || []).map(c => \`<option value="\${esc(c)}"\${c === task.category ? ' selected' : ''}>\${esc(c)}</option>\`).join('')}
+                <option value="__new__">+ add new...</option>
+              </select>
             </label>
+
             <label>Assignee:
               <select onchange="updateTaskField('\${id}', 'assignee', this.value)" class="input input-sm">
                 <option value="unassigned"\${(!task.assignee || task.assignee === 'unassigned') ? ' selected' : ''}>Unassigned</option>
@@ -446,6 +452,12 @@ export function boardViewPage(slug) {
       async function createTask() {
         const title = document.getElementById('new-title').value.trim();
         if (!title) return;
+        let category = document.getElementById('new-category').value;
+        if (category === '__new__') {
+          const name = prompt('New category name:');
+          if (!name) return;
+          category = await addCategoryToBoard(name);
+        }
         await fetch('/api/v1/boards/' + BOARD + '/tasks', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -453,7 +465,7 @@ export function boardViewPage(slug) {
             content: document.getElementById('new-content').value,
             stage: document.getElementById('new-stage').value,
             priority: document.getElementById('new-priority').value,
-            category: document.getElementById('new-category').value.trim() || undefined,
+            category: category || undefined,
             assignee: document.getElementById('new-assignee').value,
           })
         });
@@ -462,6 +474,31 @@ export function boardViewPage(slug) {
         document.getElementById('new-content').value = '';
         document.getElementById('new-category').value = '';
         loadBoard();
+      }
+
+      async function handleCategoryChange(taskId, select) {
+        let val = select.value;
+        if (val === '__new__') {
+          const name = prompt('New category name:');
+          if (!name) { select.value = ''; return; }
+          val = await addCategoryToBoard(name);
+          // Reload board to update all selects, then update the task
+          await loadBoard();
+        }
+        await updateTaskField(taskId, 'category', val || '');
+      }
+
+      async function addCategoryToBoard(name) {
+        const newCats = [...(currentBoard.categories || [])];
+        if (!newCats.includes(name)) {
+          newCats.push(name);
+          await fetch('/api/v1/boards/' + BOARD, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categories: newCats })
+          });
+          currentBoard.categories = newCats;
+        }
+        return name;
       }
 
       const CATEGORY_PALETTE = [

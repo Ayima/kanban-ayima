@@ -18,17 +18,29 @@ kanban-ayima login https://kanban.ayima.net
 ### Board Management
 - `kanban-ayima boards` — List all boards
 - `kanban-ayima boards create "<name>" "<description>"` — Create a new board
-- `kanban-ayima boards delete <slug>` — Delete a board (requires confirmation)
+- `kanban-ayima boards rename <slug> <new-name>` — Rename a board
 
 ### Task Management
 - `kanban-ayima tasks <board>` — List all tasks on a board
-- `kanban-ayima tasks <board> --stage <stage>` — List tasks filtered by stage
-- `kanban-ayima tasks <board> create "<title>" --body "<content>" --stage <stage> --priority <priority>` — Create a task
+- `kanban-ayima tasks <board> list --stage <stage>` — List tasks filtered by stage
+- `kanban-ayima tasks <board> create "<title>" --body "<content>" --stage <stage> --priority <priority> --category "<category>"` — Create a task. The `--category` flag is optional; the CLI automatically matches it to existing board-scoped categories or creates a new one if it doesn't exist.
 - `kanban-ayima tasks <board> show <id>` — Show task details and updates
 - `kanban-ayima tasks <board> move <id> <stage>` — Move a task to a different stage
-- `kanban-ayima tasks <board> edit <id> --title "<title>" --body "<content>" --priority <priority> --assignee "<name>"` — Edit a task (all flags optional; only provided fields are updated)
+- `kanban-ayima tasks <board> edit <id> --title "<title>" --body "<content>" --priority <priority> --assignee "<name>" --category "<category>"` — Edit a task. The `--category` flag automatically matches or creates the category.
 - `kanban-ayima tasks <board> update <id> --body "<comment>"` — Add a comment/update to a task
 - `kanban-ayima tasks <board> delete <id>` — Delete a task
+
+### Categories
+Categories are **board-scoped enums**.
+
+**When creating or editing a task with a category:**
+1. Fetch the board metadata to see available categories: `kanban-ayima boards <board>` (use `jq` to extract the `categories` array)
+2. Review the task information (title, body, priority) and the available categories
+3. Make a deliberate choice:
+   - **Use an existing category** if one fits the task (use the exact name as stored)
+   - **Create a new category** if none fit, then use it when creating/editing the task
+4. Pass `--category "<name>"` with the exact name you chose
+
 
 ### Stages
 Fixed stages in order: `backlog` → `next` → `in-progress` → `complete` → `archive`

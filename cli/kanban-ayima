@@ -152,7 +152,7 @@ cmd_tasks() {
     create)
       local title="${1:-}"
       if [[ -z "$title" ]]; then
-        echo "Usage: kanban-ayima tasks <board> create <title> [--body <content>] [--stage <stage>] [--priority <priority>]" >&2
+        echo "Usage: kanban-ayima tasks <board> create <title> [--body <content>] [--stage <stage>] [--priority <priority>] [--category <category>]" >&2
         exit 1
       fi
       shift
@@ -169,6 +169,7 @@ cmd_tasks() {
       if [[ -z "$body" && ! -t 0 ]]; then
         body=$(cat)
       fi
+
       local cat_field=""
       [[ -n "$category" ]] && cat_field=",\"category\":\"$category\""
       api_or_die POST "/boards/$board/tasks" \
@@ -203,6 +204,7 @@ cmd_tasks() {
           *) shift ;;
         esac
       done
+
       local payload="{"
       local first=true
       for field in title body priority assignee category; do
@@ -219,17 +221,13 @@ cmd_tasks() {
       ;;
     update)
       local id="${1:-}"
-      if [[ -z "$id" ]]; then echo "Usage: kanban-ayima tasks <board> update <id> [--body <content>]" >&2; exit 1; fi
+      if [[ -z "$id" ]]; then echo "Usage: kanban-ayima tasks <board> update <id> --body <content>" >&2; exit 1; fi
       shift
-      local content=""
-      if [[ "${1:-}" == "--body" ]]; then
-        content="$2"
-      elif [[ ! -t 0 ]]; then
-        content=$(cat)
-      else
-        echo "Enter update (Ctrl+D to finish):"
-        content=$(cat)
+      if [[ "${1:-}" != "--body" || -z "${2:-}" ]]; then
+        echo "Usage: kanban-ayima tasks <board> update <id> --body <content>" >&2
+        exit 1
       fi
+      local content="$2"
       api_or_die POST "/boards/$board/tasks/$id/updates" -d "{\"content\":\"$content\"}" | jq .
       ;;
     delete)
@@ -258,11 +256,11 @@ Commands:
   boards rename <slug> <new-name>     Rename a board
   boards delete <slug>                Delete a board
   tasks <board>                       List tasks (--stage <stage> to filter)
-  tasks <board> create <title>        Create task (--body, --stage, --priority)
+  tasks <board> create <title>        Create task (--body, --stage, --priority, --category)
   tasks <board> show <id>             Show task details
   tasks <board> move <id> <stage>     Move task to stage
-  tasks <board> edit <id>             Edit task (--title, --body, --priority, --assignee)
-  tasks <board> update <id>           Add update/comment (--body or stdin)
+  tasks <board> edit <id>             Edit task (--title, --body, --priority, --assignee, --category)
+  tasks <board> update <id>           Add update/comment (--body <content>)
   tasks <board> delete <id>           Delete task
   help                                Show this help
 

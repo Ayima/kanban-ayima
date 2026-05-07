@@ -24,7 +24,12 @@ export async function createBoard(env, { name, description }) {
   const existing = await env.BUCKET.get(`boards/${slug}/_meta.json`);
   if (existing) return { error: 'Board already exists', status: 409 };
 
-  const meta = { name, description: description || '', created: new Date().toISOString() };
+  const meta = {
+    name,
+    description: description || '',
+    created: new Date().toISOString(),
+    categories: []
+  };
   await env.BUCKET.put(`boards/${slug}/_meta.json`, JSON.stringify(meta));
   return { slug, ...meta };
 }
@@ -36,6 +41,7 @@ export async function updateBoard(env, slug, updates) {
   const { slug: _slug, ...meta } = existing;
   if (updates.name !== undefined) meta.name = updates.name;
   if (updates.description !== undefined) meta.description = updates.description;
+  if (updates.categories !== undefined) meta.categories = updates.categories;
 
   await env.BUCKET.put(`boards/${slug}/_meta.json`, JSON.stringify(meta));
   return { slug, ...meta };
