@@ -34,6 +34,12 @@ curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/skill/kanba
   -o ~/.claude/skills/kanban-ayima/SKILL.md
 ```
 
+Or if using the ayima-skills repo (auto-symlinked into agent config dirs):
+
+```bash
+cp skill/kanban-ayima/SKILL.md ~/apro/ayima-skills/skills/kanban-ayima/SKILL.md
+```
+
 Then ask Claude things like:
 - `/kanban-ayima Create these tasks in the [project-name] board`
 - `/kanban-ayima Show me all tasks in the backlog for [project-name]`
@@ -290,19 +296,18 @@ kanban-ayima login https://kanban.ayima.net
 
 ### 3. Install the Skill
 
-Copy the skill directory to your Claude Code skills directory:
-
-```bash
-mkdir -p ~/.claude/skills
-cp -r skill/kanban-ayima ~/.claude/skills/kanban-ayima
-```
-
-Or if installing from the repo:
+Copy the skill to your Claude Code skills directory:
 
 ```bash
 mkdir -p ~/.claude/skills/kanban-ayima
 curl -fsSL https://raw.githubusercontent.com/ayima/kanban-ayima/main/skill/kanban-ayima/SKILL.md \
   -o ~/.claude/skills/kanban-ayima/SKILL.md
+```
+
+Or if using the ayima-skills repo (auto-symlinked into agent config dirs):
+
+```bash
+cp skill/kanban-ayima/SKILL.md ~/apro/ayima-skills/skills/kanban-ayima/SKILL.md
 ```
 
 ### 4. Use It

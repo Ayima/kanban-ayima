@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Cloudflare Workers kanban board app with R2 storage. Source in `src/`, CLI in `cli/`, Claude Code skill in `skill/`.
+Cloudflare Workers kanban board app with R2 storage. Source in `src/`, CLI in `cli/`, skill in `skill/`.
 
 ## Getting Started
 
@@ -31,6 +31,7 @@ Read `.secrets` at the start of each session for credentials and configuration v
 
 1. Update `cli/kanban-ayima` to expose any new/changed fields or endpoints.
 2. Update `skill/kanban-ayima/SKILL.md` to document the new CLI usage accurately.
+3. Copy the updated skill to the ayima-skills repo: `cp skill/kanban-ayima/SKILL.md ~/apro/ayima-skills/skills/kanban-ayima/SKILL.md`
 
 The skill is what coding agents read to understand available commands — if it's stale, agents will use wrong or missing flags (e.g. the `--assignee` gap that existed before this rule was added).
 
@@ -57,13 +58,12 @@ The symlink at `/usr/local/bin/kanban-ayima` already points to this repo, so `gi
 
 ### Deploy the Skill
 
-Copy `skill/kanban-ayima/SKILL.md` to both skill registries (replacing any existing version):
+Copy `skill/kanban-ayima/SKILL.md` to the ayima-skills repo (which is symlinked into the agent config directories):
 
 ```bash
-cp skill/kanban-ayima/SKILL.md /Users/alex/agent-skills/agents/kanban-ayima/SKILL.md
-cp skill/kanban-ayima/SKILL.md /Users/alex/agent-skills/claude/kanban-ayima/SKILL.md
+cp skill/kanban-ayima/SKILL.md ~/apro/ayima-skills/skills/kanban-ayima/SKILL.md
 ```
 
-These paths are the real locations behind the symlinks:
-- `~/.agents/skills/` → `/Users/alex/agent-skills/agents/`
-- `~/.claude/skills/` → `/Users/alex/agent-skills/claude/`
+The `ayima-skills` repo is the single source for agent skills:
+- `~/apro/.claude/skills` → `~/apro/ayima-skills/skills`
+- `~/apro/.agents/skills` → `~/apro/ayima-skills/skills`
